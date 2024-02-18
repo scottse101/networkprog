@@ -1,7 +1,7 @@
 import java.net.*;
 import java.util.Scanner;
 
-class UDPKlient {
+class UDP_Klient {
     public static void main(String[] args) throws Exception {
         final int PORTNR = 1250;
 
@@ -39,3 +39,4 @@ class UDPKlient {
         socket.close();
     }
 }
+
