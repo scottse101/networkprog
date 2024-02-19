@@ -6,37 +6,44 @@ class UDP_Klient {
         final int PORTNR = 1250;
 
         Scanner leserFraKommandovindu = new Scanner(System.in);
-        System.out.print("Oppgi navnet på maskinen der tjenerprogrammet kjører: ");
-        String tjenermaskin = leserFraKommandovindu.nextLine();
+        boolean fortsett = true;
 
-        DatagramSocket socket = new DatagramSocket();
-        InetAddress tjeneradresse = InetAddress.getByName(tjenermaskin);
+            System.out.print("Oppgi navnet på maskinen der tjenerprogrammet kjører: ");
+            String tjenermaskin = leserFraKommandovindu.nextLine();
 
-        byte[] sendData;
-        byte[] receiveData = new byte[1024];
+            DatagramSocket socket = new DatagramSocket();
+            InetAddress tjeneradresse = InetAddress.getByName(tjenermaskin);
 
-        System.out.println("Skriv det første tallet: ");
-        double tall1 = leserFraKommandovindu.nextDouble();
-        System.out.println("Skriv det andre tallet: ");
-        double tall2 = leserFraKommandovindu.nextDouble();
-        leserFraKommandovindu.nextLine();
+            byte[] sendData;
+            byte[] receiveData = new byte[1024];
 
-        System.out.println("Velg operasjon (+ eller -): ");
-        String operasjon = leserFraKommandovindu.nextLine();
+        while (fortsett) {
+            System.out.println("Skriv det første tallet: ");
+            double tall1 = leserFraKommandovindu.nextDouble();
+            System.out.println("Skriv det andre tallet: ");
+            double tall2 = leserFraKommandovindu.nextDouble();
+            leserFraKommandovindu.nextLine();
 
-        String melding = tall1 + "\n" + tall2 + "\n" + operasjon;
-        sendData = melding.getBytes();
+            System.out.println("Velg operasjon (+ eller -): ");
+            String operasjon = leserFraKommandovindu.nextLine();
 
-        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, tjeneradresse, PORTNR);
-        socket.send(sendPacket);
+            String melding = tall1 + "\n" + tall2 + "\n" + operasjon;
+            sendData = melding.getBytes();
 
-        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-        socket.receive(receivePacket);
+            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, tjeneradresse, PORTNR);
+            socket.send(sendPacket);
 
-        String respons = new String(receivePacket.getData(), 0, receivePacket.getLength());
-        System.out.println("Resultatet fra tjeneren er: " + respons);
+            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+            socket.receive(receivePacket);
 
+            String respons = new String(receivePacket.getData(), 0, receivePacket.getLength());
+            System.out.println("Resultatet fra tjeneren er: " + respons);
+
+            // Spør brukeren om de vil fortsette
+            System.out.print("Vil du gjøre en ny kalkulasjon? (ja/nei): ");
+            String svar = leserFraKommandovindu.nextLine();
+            fortsett = svar.equalsIgnoreCase("ja");
+        }
         socket.close();
     }
 }
-
