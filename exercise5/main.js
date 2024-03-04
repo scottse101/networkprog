@@ -9,6 +9,6 @@ async function runCode() {
         body: JSON.stringify({ code }),
     });
 
-    const result = await response.text();
-    document.getElementById('result').innerText = result;
+    const result = await response.json();
+    document.getElementById('output').innerText = result.output;
 }
