@@ -1,28 +1,46 @@
 const express = require('express');
+const bodyParser = require('body-parser');
 const { exec } = require('child_process');
+const path = require('path');
+
 const app = express();
 const port = 8080;
 
-app.use(express.json());
+app.use(bodyParser.json());
+
+app.use(express.static(path.join(__dirname, '/')));
 
 app.post('/runcode', (req, res) => {
-    const { code } = req.body;
+    const code = req.body.code;
 
-    // Write code to a temporary Java file
-    const fileName = 'temp.java';
-    require('fs').writeFileSync(fileName, code);
+    console.log(`Running code: ${code}`);
 
-    // Run the Java code using Docker
-    exec(`docker run --rm -v "$(pwd)":/usr/src/app -w /usr/src/app openjdk:latest javac ${fileName} && java ${fileName.replace('.java', '')}`, (error, stdout, stderr) => {
-        if (error) {
-            res.send(stderr);
+    const javaFilePath = path.join(__dirname, 'temp.java');
+    const compiledFilePath = path.join(__dirname, 'temp.class');
+
+    require('fs').writeFileSync(javaFilePath, code);
+
+    exec(`javac ${javaFilePath}`, (compileError) => {
+        if (compileError) {
+            res.json({ output: `Compilation Error: ${compileError.message}` });
         } else {
-            res.send(stdout);
+            exec(`java -cp ${path.dirname(compiledFilePath)} temp`, (runError, stdout, stderr) => {
+                if (runError) {
+                    res.json({ output: `Runtime Error: ${runError.message}` });
+                } else {
+                    res.json({ output: stdout });
+                }
+
+                require('fs').unlinkSync(javaFilePath);
+                require('fs').unlinkSync(compiledFilePath);
+            });
         }
     });
 });
 
-app.use(express.static('public'));
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
