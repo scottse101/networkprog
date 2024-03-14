@@ -29,7 +29,7 @@ const httpServer = net.createServer((connection) => {
     <meta charset="UTF-8" />
   </head>
   <body>
-    WebSocket test page
+    Welcome to WebSocket test page!
     <script>
       let ws = new WebSocket('ws://localhost:3001');
       ws.onmessage = event => alert('Message from server: ' + event.data);
