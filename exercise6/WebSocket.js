@@ -1,11 +1,16 @@
 const net = require('net');
+const crypto = require('crypto');
 
 // Function to perform WebSocket handshake
-function performHandshake(socket) {
+function performHandshake(socket, key) {
+  const acceptKey = crypto.createHash('sha1')
+                        .update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', 'binary')
+                        .digest('base64');
+  
   socket.write('HTTP/1.1 101 Switching Protocols\r\n' +
                'Upgrade: websocket\r\n' +
                'Connection: Upgrade\r\n' +
-               '\r\n');
+               'Sec-WebSocket-Accept: ' + acceptKey + '\r\n\r\n');
 }
 
 // Maintain a list of connected WebSocket clients
@@ -33,7 +38,7 @@ const httpServer = net.createServer((connection) => {
     <script>
       let ws = new WebSocket('ws://localhost:3001');
       ws.onmessage = event => alert('Message from server: ' + event.data);
-      ws.onopen = () => ws.send('hello');
+      ws.onopen = () => ws.send('hello cocksocker motherfucker');
     </script>
   </body>
 </html>
@@ -48,30 +53,42 @@ httpServer.listen(3000, () => {
 // WebSocket server
 const wsServer = net.createServer((connection) => {
   console.log('Client connected');
-  
-  // Perform WebSocket handshake
-  performHandshake(connection);
 
-  // Add client to the list of connected clients
-  clients.push(connection);
+  let handshakeDone = false;
+  let key = '';
 
   connection.on('data', (data) => {
-    // Assuming received data is UTF-8 encoded text
-    const message = data.toString();
-    console.log('Data received from client: ', message);
-
-    // Broadcast the received message to all clients
-    broadcast(message, connection);
+    if (!handshakeDone) {
+      // Perform WebSocket handshake if not already done
+      const headers = data.toString().split('\r\n');
+      const keyHeader = headers.find(header => header.startsWith('Sec-WebSocket-Key'));
+      if (keyHeader) {
+        key = keyHeader.split(': ')[1];
+        performHandshake(connection, key);
+        handshakeDone = true;
+      }
+    } else {
+      // Handle WebSocket messages from clients
+      const opcode = data[0] & 0x0F;
+      if (opcode === 0x8) {
+        // Close connection if client sends a close frame
+        connection.end();
+      } else if (opcode === 0x1) {
+        // Text frame received
+        const payloadLength = data[1] & 0x7F;
+        const mask = data.slice(2, 6);
+        const maskedData = data.slice(6);
+        const unmaskedData = Buffer.alloc(maskedData.length);
+        for (let i = 0; i < maskedData.length; i++) {
+          unmaskedData[i] = maskedData[i] ^ mask[i % 4];
+        }
+        console.log('Message from client: ' + unmaskedData.toString());
+      }
+    }
   });
 
   connection.on('end', () => {
     console.log('Client disconnected');
-
-    // Remove disconnected client from the list of clients
-    const index = clients.indexOf(connection);
-    if (index !== -1) {
-      clients.splice(index, 1);
-    }
   });
 });
 wsServer.on('error', (error) => {
