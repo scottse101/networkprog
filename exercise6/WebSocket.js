@@ -13,6 +13,38 @@ function performHandshake(socket, key) {
                'Sec-WebSocket-Accept: ' + acceptKey + '\r\n\r\n');
 }
 
+// Function to unmask message received from client
+function unmaskMessage(mask, maskedData) {
+  const unmaskedData = Buffer.alloc(maskedData.length);
+  for (let i = 0; i < maskedData.length; i++) {
+    unmaskedData[i] = maskedData[i] ^ mask[i % 4];
+  }
+  return unmaskedData.toString();
+}
+
+// Function to format message for sending to client
+function formatMessage(message) {
+  const opcode = 0x81; // Text frame opcode
+  const messageLength = Buffer.byteLength(message);
+  let header;
+  if (messageLength < 126) {
+    header = Buffer.alloc(2);
+    header.writeUInt8(opcode, 0);
+    header.writeUInt8(messageLength, 1);
+  } else if (messageLength < 65536) {
+    header = Buffer.alloc(4);
+    header.writeUInt8(opcode, 0);
+    header.writeUInt8(126, 1);
+    header.writeUInt16BE(messageLength, 2);
+  } else {
+    header = Buffer.alloc(10);
+    header.writeUInt8(opcode, 0);
+    header.writeUInt8(127, 1);
+    header.writeBigUInt64BE(BigInt(messageLength), 2);
+  }
+  return Buffer.concat([header, Buffer.from(message)]);
+}
+
 // Maintain a list of connected WebSocket clients
 const clients = [];
 
@@ -38,7 +70,8 @@ const httpServer = net.createServer((connection) => {
     <script>
       let ws = new WebSocket('ws://localhost:3001');
       ws.onmessage = event => alert('Message from server: ' + event.data);
-      ws.onopen = () => ws.send('hello cocksocker motherfucker');
+      ws.onopen = () => ws.send('Hello studass!');
+      ws.onerror = (event) => console.log(event);
     </script>
   </body>
 </html>
