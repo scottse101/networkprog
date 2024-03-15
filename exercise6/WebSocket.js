@@ -99,6 +99,9 @@ const wsServer = net.createServer((connection) => {
         key = keyHeader.split(': ')[1];
         performHandshake(connection, key);
         handshakeDone = true;
+        let message = "Heisann";
+        let response = formatMessage(message);
+        connection.write(response);
       }
     } else {
       // Handle WebSocket messages from clients
